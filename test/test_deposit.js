@@ -1,12 +1,12 @@
 const axios = require('axios');
 
-// 测试存款功能
+// test deposit
 async function testDeposit() {
   const apiUrl = 'http://localhost:3001/api/lending/deposit';
   const requestData = {
-    amount: 5, // 测试存款金额
-    userWalletAddress: 'rJsfvrHVYMoXhV67GgZdzoXGidbgQZ7b6J', // 用户钱包地址
-    userWalletSeed: 'sEdTG5TKBRCAG69LVDsfpa2N1M9fhUx', // 用户钱包种子
+    amount: 5, //amount
+    userWalletAddress: 'rJsfvrHVYMoXhV67GgZdzoXGidbgQZ7b6J', 
+    userWalletSeed: 'sEdTG5TKBRCAG69LVDsfpa2N1M9fhUx', 
   };
 
   try {

@@ -2,25 +2,33 @@ const { transferXRP, getBalance } = require('./xrplService');
 const { calculateReward } = require('../utils/rewardCalculator');
 const lendingPool = require('../models/lendingPool');
 
-// 存款到放贷池
+// deposit to the lending pool
 async function depositToLendingPool(amount, userWalletAddress, userWalletSeed) {
   const lendingPoolAddress = process.env.LENDING_POOL_ADDRESS;
-  const rewardRate = 0.01; // 固定奖励率（1%）
+  const lendingPoolSeed = process.env.LENDING_POOL_SEED;
+  const rewardRate = 0.01; 
   const incentive = calculateReward(amount, rewardRate);
 
-  // 转账到 Lending Pool
   const transferResult = await transferXRP(amount, userWalletAddress, lendingPoolAddress, userWalletSeed);
   if (!transferResult.success) {
     throw new Error(transferResult.error);
   }
 
-  // 更新 Lending Pool 状态
+  if (incentive > 0) {
+    const incentiveResult = await transferXRP(incentive, lendingPoolAddress, userWalletAddress, lendingPoolSeed);
+    if (!incentiveResult.success) {
+      throw new Error(`Failed to send incentive: ${incentiveResult.error}`);
+    }
+    console.log(`✅ Incentive of ${incentive} XRP sent to ${userWalletAddress}`);
+  }
+
+  // update
   lendingPool.addDeposit(userWalletAddress, amount, incentive);
 
   return { ...transferResult, incentive };
 }
 
-// 借款逻辑
+// borrow operation
 async function borrowFromLendingPool(amount, userWalletAddress) {
     const lendingPoolAddress = process.env.LENDING_POOL_ADDRESS;
     const lendingPoolSeed = process.env.LENDING_POOL_SEED;
@@ -49,7 +57,7 @@ async function borrowFromLendingPool(amount, userWalletAddress) {
       throw new Error('Failed to complete borrowing');
     }
   }
-// 分发奖励
+
 async function distributeIncentives() {
   const rewardResults = lendingPool.distributeRewards();
   return rewardResults;

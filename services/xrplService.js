@@ -57,7 +57,6 @@ async function getBalance(address) {
 }
 
 /**
- * 转账操作
  * @param {number} amount 
  * @param {string} senderAddress 
  * @param {string} receiverAddress
