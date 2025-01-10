@@ -1,11 +1,12 @@
 const axios = require('axios');
 
+// 测试存款功能
 async function testDeposit() {
   const apiUrl = 'http://localhost:3001/api/lending/deposit';
   const requestData = {
-    amount: 10,
-    userWalletAddress: 'rJsfvrHVYMoXhV67GgZdzoXGidbgQZ7b6J',
-    userWalletSeed: 'sEdTG5TKBRCAG69LVDsfpa2N1M9fhUx'
+    amount: 5, // 测试存款金额
+    userWalletAddress: 'rJsfvrHVYMoXhV67GgZdzoXGidbgQZ7b6J', // 用户钱包地址
+    userWalletSeed: 'sEdTG5TKBRCAG69LVDsfpa2N1M9fhUx', // 用户钱包种子
   };
 
   try {
@@ -16,7 +17,10 @@ async function testDeposit() {
     });
     console.log('✅ Deposit Test Successful:', response.data);
   } catch (error) {
-    console.error('❌ Deposit Test Failed:', error.response ? error.response.data : error.message);
+    console.error(
+      '❌ Deposit Test Failed:',
+      error.response ? error.response.data : error.message
+    );
   }
 }
 

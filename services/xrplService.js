@@ -1,7 +1,7 @@
 const xrpl = require('xrpl');
 
 /**
- * 连接到 XRPL 网络
+ * Connect to XRPL Testnet
  */
 async function connectXRPL() {
   const client = new xrpl.Client(process.env.XRPL_SERVER);
@@ -11,9 +11,9 @@ async function connectXRPL() {
 }
 
 /**
- * 获取最新的账本索引
- * @param {xrpl.Client} client - XRPL 客户端
- * @returns {number} - 当前账本索引
+ * Get transaction index
+ * @param {xrpl.Client} client
+ * @returns {number} 
  */
 async function getLedgerIndex(client) {
   try {
@@ -31,9 +31,9 @@ async function getLedgerIndex(client) {
 }
 
 /**
- * 获取账户余额
- * @param {string} address - 账户地址
- * @returns {Promise<number>} - 账户余额（单位：XRP）
+ * Get balance
+ * @param {string} address 
+ * @returns {Promise<number>} 
  */
 async function getBalance(address) {
   const client = await connectXRPL();
@@ -44,7 +44,7 @@ async function getBalance(address) {
       ledger_index: 'validated',
     });
 
-    const balance = parseInt(accountInfo.result.account_data.Balance, 10) / 1000000; // 转换为 XRP
+    const balance = parseInt(accountInfo.result.account_data.Balance, 10) / 1000000; 
     console.log(`✅ Account Balance for ${address}: ${balance} XRP`);
     return balance;
   } catch (error) {
@@ -58,26 +58,25 @@ async function getBalance(address) {
 
 /**
  * 转账操作
- * @param {number} amount - 转账金额（单位：XRP）
- * @param {string} senderAddress - 发送方地址
- * @param {string} receiverAddress - 接收方地址
- * @param {string} senderSeed - 发送方私钥
- * @returns {Promise<object>} - 转账结果
+ * @param {number} amount 
+ * @param {string} senderAddress 
+ * @param {string} receiverAddress
+ * @param {string} senderSeed
+ * @returns {Promise<object>}
  */
 async function transferXRP(amount, senderAddress, receiverAddress, senderSeed) {
   const client = await connectXRPL();
   const wallet = xrpl.Wallet.fromSeed(senderSeed);
 
   try {
-    // 检查发送方账户余额
     const accountInfo = await client.request({
       command: 'account_info',
       account: senderAddress,
       ledger_index: 'validated',
     });
 
-    const totalBalance = parseInt(accountInfo.result.account_data.Balance, 10) / 1000000; // 转换为 XRP
-    const reserve = 10 + parseInt(accountInfo.result.account_data.OwnerCount || 0) * 2; // 储备金
+    const totalBalance = parseInt(accountInfo.result.account_data.Balance, 10) / 1000000;
+    const reserve = 10 + parseInt(accountInfo.result.account_data.OwnerCount || 0) * 2;
     const availableBalance = totalBalance - reserve;
 
     console.log(`💰 Total Balance: ${totalBalance} XRP`);
@@ -88,7 +87,7 @@ async function transferXRP(amount, senderAddress, receiverAddress, senderSeed) {
       throw new Error(`Insufficient balance: ${availableBalance} XRP available, but trying to send ${amount} XRP`);
     }
 
-    // 检查接收方账户是否已激活
+    // Check activity
     try {
       await client.request({
         command: 'account_info',
@@ -104,11 +103,10 @@ async function transferXRP(amount, senderAddress, receiverAddress, senderSeed) {
       }
     }
 
-    // 获取最新账本索引
     const ledgerIndex = await getLedgerIndex(client);
-    const lastLedgerSequence = ledgerIndex + 50; // 设置交易过期账本索引
+    const lastLedgerSequence = ledgerIndex + 50; // set expiry index
 
-    // 动态获取交易费用
+    // get fee
     const feeResponse = await client.request({
       command: 'fee',
     });
@@ -118,12 +116,12 @@ async function transferXRP(amount, senderAddress, receiverAddress, senderSeed) {
     const sequence = accountInfo.result.account_data.Sequence;
     console.log(`✅ Account Sequence: ${sequence}`);
 
-    // 构建交易对象
+    // Transaction object
     const paymentTx = {
       TransactionType: 'Payment',
       Account: senderAddress,
       Destination: receiverAddress,
-      Amount: xrpl.xrpToDrops(amount.toString()), // 转换为 drops
+      Amount: xrpl.xrpToDrops(amount.toString()), 
       Fee: fee,
       LastLedgerSequence: lastLedgerSequence,
       Sequence: sequence,
@@ -131,7 +129,7 @@ async function transferXRP(amount, senderAddress, receiverAddress, senderSeed) {
 
     console.log('🛠️ Payment Transaction Object:', JSON.stringify(paymentTx, null, 2));
 
-    // 签名并提交交易
+    // Sign and submit
     const signed = wallet.sign(paymentTx);
     console.log('🛠️ Signed Transaction:', signed);
 
