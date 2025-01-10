@@ -153,4 +153,163 @@ async function transferXRP(amount, senderAddress, receiverAddress, senderSeed) {
   }
 }
 
-module.exports = { connectXRPL, getLedgerIndex, getBalance, transferXRP };
+/**
+ * Establish a Trust Line
+ * @param {string} accountSecret - Account seed
+ * @param {string} currency - Token currency code
+ * @param {string} issuerAddress - Issuer's XRPL account address
+ * @param {string} limitAmount - Trust line limit amount
+ * @returns {Promise<object>} - Trust line creation result
+ */
+async function establishTrustLine(accountSecret, currency, issuerAddress, limitAmount) {
+  const client = await connectXRPL();
+  const wallet = xrpl.Wallet.fromSeed(accountSecret);
+
+  try {
+    const trustSetTx = {
+      TransactionType: 'TrustSet',
+      Account: wallet.classicAddress,
+      LimitAmount: {
+        currency: currency,
+        issuer: issuerAddress,
+        value: limitAmount,
+      },
+    };
+
+    const preparedTx = await client.autofill(trustSetTx);
+    const signedTx = wallet.sign(preparedTx);
+    const result = await client.submitAndWait(signedTx.tx_blob);
+
+    console.log('✅ Trust Line Established:', result);
+    return result;
+  } catch (error) {
+    console.error('❌ Trust Line Error:', error.message);
+    throw error;
+  } finally {
+    await client.disconnect();
+    console.log('🔌 Disconnected from XRPL server');
+  }
+}
+
+
+/**
+* Issue Tokens
+* @param {string} issuerSecret - Issuer's wallet seed
+* @param {string} recipientAddress - Recipient's XRPL account address
+* @param {string} currency - Token currency code
+* @param {string} amount - Token amount
+* @returns {Promise<object>} - Token issuance result
+*/
+async function issueToken(issuerSecret, recipientAddress, currency, amount) {
+ const client = await connectXRPL();
+ const issuerWallet = xrpl.Wallet.fromSeed(issuerSecret);
+
+ try {
+   const paymentTx = {
+     TransactionType: 'Payment',
+     Account: issuerWallet.classicAddress,
+     Destination: recipientAddress,
+     Amount: {
+       currency: currency,
+       issuer: issuerWallet.classicAddress,
+       value: amount,
+     },
+   };
+
+   const preparedTx = await client.autofill(paymentTx);
+   const signedTx = issuerWallet.sign(preparedTx);
+   const result = await client.submitAndWait(signedTx.tx_blob);
+
+   console.log('✅ Token Issued:', result);
+   return result;
+ } catch (error) {
+   console.error('❌ Token Issuance Error:', error.message);
+   throw error;
+ } finally {
+   await client.disconnect();
+   console.log('🔌 Disconnected from XRPL server');
+ }
+}
+
+/**
+* Burn Excess Tokens
+* @param {string} accountSecret - Account seed
+* @param {string} issuerAddress - Issuer's XRPL account address
+* @param {string} currency - Token currency code
+* @param {string} amount - Token amount to burn
+* @returns {Promise<object>} - Token burn result
+*/
+async function burnExcessTokens(accountSecret, issuerAddress, currency, amount) {
+ const client = await connectXRPL();
+ const wallet = xrpl.Wallet.fromSeed(accountSecret);
+
+ try {
+   const paymentTx = {
+     TransactionType: 'Payment',
+     Account: wallet.classicAddress,
+     Destination: issuerAddress,
+     Amount: {
+       currency: currency,
+       issuer: issuerAddress,
+       value: amount,
+     },
+   };
+
+   const preparedTx = await client.autofill(paymentTx);
+   const signedTx = wallet.sign(preparedTx);
+   const result = await client.submitAndWait(signedTx.tx_blob);
+
+   console.log(`✅ Burned ${amount} tokens.`);
+   return result;
+ } catch (error) {
+   console.error('❌ Token Burn Error:', error.message);
+   throw error;
+ } finally {
+   await client.disconnect();
+   console.log('🔌 Disconnected from XRPL server');
+ }
+}
+
+/**
+* Check Token Balance
+* @param {string} accountSecret - Account seed
+* @param {string} currency - Token currency code
+* @param {string} issuerAddress - Issuer's XRPL account address
+* @returns {Promise<string>} - Token balance
+*/
+async function checkTokenBalance(accountSecret, currency, issuerAddress) {
+ const client = await connectXRPL();
+ const wallet = xrpl.Wallet.fromSeed(accountSecret);
+
+ try {
+   const accountLines = await client.request({
+     command: 'account_lines',
+     account: wallet.classicAddress,
+   });
+
+   const tokenLine = accountLines.result.lines.find(
+     (line) => line.currency === currency && line.account === issuerAddress
+   );
+
+   const balance = tokenLine ? tokenLine.balance : '0';
+   console.log(`✅ Token Balance for ${wallet.classicAddress}: ${balance} ${currency}`);
+   return balance;
+ } catch (error) {
+   console.error('❌ Token Balance Error:', error.message);
+   throw error;
+ } finally {
+   await client.disconnect();
+   console.log('🔌 Disconnected from XRPL server');
+ }
+}
+
+module.exports = {
+  connectXRPL,
+  getLedgerIndex,
+  getBalance,
+  transferXRP,
+  establishTrustLine,
+  issueToken,
+  burnExcessTokens,
+  checkTokenBalance,
+};
